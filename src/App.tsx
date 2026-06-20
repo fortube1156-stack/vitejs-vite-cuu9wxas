@@ -17,8 +17,8 @@ export default function App() {
         turn: 1,
         phase: "neutral",
         attacker: null,
-        p1: { hp: 10, action: null, history: [] },
-        p2: { hp: 10, action: null, history: [] }
+        p1: { hp: 100, action: null, history: [] },
+        p2: { hp: 100, action: null, history: [] }
       });
       setRoomCreated(true);
     } catch (error) {
