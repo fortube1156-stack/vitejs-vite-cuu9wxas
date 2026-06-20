@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { ref, onValue } from "firebase/database";
 import { db } from "../firebase/config";
-import { RoomState, Action } from "../firebase/types";
-import { submitAction } from "../firebase/gameService"; // ★gameServiceから呼び出し関数をインポート
+import type { RoomState, Action } from "../firebase/types";
+import { submitAction,resetRoom } from "../firebase/gameService"; // ★gameServiceから呼び出し関数をインポート
 
 interface GameRoomProps {
   roomId: string;
@@ -47,6 +47,15 @@ export function GameRoom({ roomId }: GameRoomProps) {
       : ["guard", "abare", "invincible"];  // 守り: ガード、暴れ、無敵技
   };
 
+    // ★リセットボタンクリック時の処理
+    const handleReset = async () => {
+      try {
+        await resetRoom(roomId);
+      } catch (error) {
+        console.error("リセットエラー:", error);
+      }
+    };
+
   if (!room) return <div>ルームのデータを読み込み中...</div>;
 
   return (
@@ -62,7 +71,10 @@ export function GameRoom({ roomId }: GameRoomProps) {
         </select>
       </div>
 
-      <p>現在のフェーズ: <strong>{room.phase === "neutral" ? "立ち回り" : "起き攻め"}</strong></p>
+      {/* ★進行中のみ現在のフェーズを表示 */}
+      {room.status !== "finished" && (
+        <p>現在のフェーズ: <strong>{room.phase === "neutral" ? "立ち回り" : "起き攻め"}</strong></p>
+      )}
 
       {/* アクションボタンの表示 */}
       {room.status === "waiting" && (
@@ -73,7 +85,7 @@ export function GameRoom({ roomId }: GameRoomProps) {
               <button 
                 key={actionName} 
                 onClick={() => handleActionSelect(actionName)}
-                disabled={room[myId].action !== null} // 既に選択済みの場合はボタンを無効化
+                disabled={!!room[myId].action} // 既に選択済みの場合はボタンを無効化
                 style={{ padding: "10px 15px", cursor: "pointer" }}
               >
                 {actionName}
@@ -82,6 +94,32 @@ export function GameRoom({ roomId }: GameRoomProps) {
           </div>
           {room[myId].action && <p style={{ color: "green" }}>選択完了！相手の入力を待っています...</p>}
         </div>
+      )}
+
+      {/* ★追加：決着（KO）時のリザルト画面表示 */}
+      {room.status === "finished" && (
+        <div style={{ 
+          margin: "20px 0", 
+          padding: "20px", 
+          border: "2px solid gold", 
+          borderRadius: "8px", 
+          backgroundColor: "#fffdf0", 
+          textAlign: "center" 
+        }}>
+          <h3 style={{ color: "#d4af37", margin: "0 0 10px 0" }}>🏆 決着 (K.O.) 🏆</h3>
+          <p style={{ fontSize: "20px", fontWeight: "bold", margin: "0 0 15px 0" }}>
+            {room.winner === "draw" ? "引き分け！" : `勝者: ${room.winner?.toUpperCase()}`}
+          </p>
+          <p style={{ color: "#666", fontSize: "14px" }}>お疲れ様でした！</p>
+          {/* ★追加：リスタートボタン */}
+          <button 
+            onClick={handleReset}
+            style={{ padding: "10px 20px", fontSize: "16px", cursor: "pointer", backgroundColor: "#d4af37", color: "white", border: "none", borderRadius: "4px" }}
+          >
+            もう一度対戦する
+          </button>
+        </div>
+        
       )}
 
       {/* ステータス表示 */}
